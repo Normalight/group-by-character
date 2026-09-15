@@ -169,11 +169,14 @@ CI 使用 Python 3.11 和固定版本依赖；模型由 `packaging/download_mode
 本地构建仍可运行 `bash build_mac.sh arm64`、`bash build_mac.sh x86_64`；
 双架构通用包可在具备两种 Python 3.11 与 Rosetta 的 M 系列 Mac 上运行 `bash build_mac.sh universal`。
 
-安装包命名统一为 `仓库名-版本标签-平台-架构.zip`，不额外生成校验文件或嵌套压缩包。
+安装包命名统一为 `归并-版本标签-平台-架构.zip`，不额外生成校验文件或嵌套压缩包。
 例如本仓库的 `v1.0.0`：
 
-- `group-by-character-v1.0.0-windows-x64.zip`
-- `group-by-character-v1.0.0-macos-x86_64.zip`（Intel）
-- `group-by-character-v1.0.0-macos-arm64.zip`（M 系列）
+- `归并-v1.0.0-windows-x64.zip`
+- `归并-v1.0.0-macos-x86_64.zip`（Intel）
+- `归并-v1.0.0-macos-arm64.zip`（M 系列）
 
 文件名以标签为准，与可自由填写的 Release 标题无关；应用内名称保持中文。
+
+Mac ZIP 根目录只有 `字形归并工具.app` 与 `MAC使用说明.txt`，解压后直接打开应用；不包含外层目录、启动脚本或依赖清单。
+本地构建通过 `PACKAGE_VERSION=v1.0.0` 指定包名版本，未指定时为 `v0.0.0-dev`。
