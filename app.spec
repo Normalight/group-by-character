@@ -11,7 +11,7 @@ for filename in ('inference.onnx', 'inference.yml'):
         raise FileNotFoundError(f'缺少内置模型资源：{source}')
     datas.append((str(source), model_dir.as_posix()))
 
-a = Analysis([str(project_dir / 'app.py')], pathex=[str(project_dir)],
+a = Analysis([str(project_dir / 'packaging/entry.py')], pathex=[str(project_dir), str(project_dir / 'packaging')],
              binaries=[], datas=datas, hiddenimports=['yaml', 'xlsxwriter'],
              hookspath=[], runtime_hooks=[], excludes=[], noarchive=False)
 # 沿用上游的 Windows ICU 兼容处理，保留 Qt 自身目录中的依赖。

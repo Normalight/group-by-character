@@ -1,0 +1,9 @@
+# Windows x64 / Python 3.11 packaging dependencies.
+numpy==2.2.6
+Pillow==11.2.1
+onnxruntime==1.22.1
+PyYAML==6.0.2
+xlsxwriter==3.2.3
+PySide6==6.8.3
+pyinstaller==6.21.0
+pyinstaller-hooks-contrib==2026.6

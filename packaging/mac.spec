@@ -14,7 +14,7 @@ for model in models:
         if not source.is_file():
             raise FileNotFoundError(f'缺少模型资源：{source}')
         datas.append((str(source), str(source.parent.relative_to(root))))
-a = Analysis([str(root / 'packaging/mac_entry.py')],
+a = Analysis([str(root / 'packaging/entry.py')],
     pathex=[str(root), str(root / 'packaging')], datas=datas, binaries=[],
     hiddenimports=[], hookspath=[], runtime_hooks=[],
     excludes=['PyQt5', 'PyQt6', 'PySide2', 'tkinter', 'pytest'], noarchive=False)
