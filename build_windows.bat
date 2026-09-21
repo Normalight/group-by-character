@@ -9,3 +9,6 @@ if errorlevel 1 (
   exit /b 1
 )
 echo Built: dist\group_by_character\group_by_character.exe
+
+call conda run --no-capture-output -n chardet python packaging/package_windows.py
+if errorlevel 1 exit /b 1

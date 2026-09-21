@@ -155,7 +155,8 @@ class MainWindow(QMainWindow):
                     confidence_threshold=self.threshold.value())
 
     def launch(self, scan=False, export=False):
-        if getattr(getattr(self, '_auth_guard', None), 'locked', False) and not export:
+        from hanzi_auth import is_locked
+        if is_locked(self) and not export:
             return
         if export and self.saved_options is None:
             self.status.setText('当前没有可保存的复核结果。')
@@ -349,19 +350,14 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
-    from hanzi_auth.single_instance import acquire_instance
-    instance = acquire_instance(app, 'group-by-character')
-    if instance is None:
-        return 0
     app.setStyle('Fusion')
-    from hanzi_auth import require_login, protect_window
-    session = require_login('group-by-character')
+    from hanzi_auth import start_session, protect_window
+    session = start_session(app, 'group-by-character')
     if session is None:
         return 0
     window = MainWindow()
-    instance.window = window
-    protect_window(window, session, lambda: window.launch(export=True), window.stop)
-    window.check_updates_button.clicked.connect(window._update_controller.action.trigger)
+    protect_window(window, session, lambda: window.launch(export=True), window.stop,
+                   update_button=window.check_updates_button)
     window.show()
     return app.exec()
 
