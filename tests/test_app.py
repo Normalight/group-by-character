@@ -86,3 +86,119 @@ def test_delete_undo_and_save_empty_result(tmp_path, monkeypatch):
     assert (output / '字形归并.xlsx').is_file()
     assert len(list(root.glob('*.png'))) == 2
     window.close()
+
+
+def test_update_restart_saves_review_before_closing(tmp_path, monkeypatch):
+    import json
+    from types import SimpleNamespace
+    from PySide6.QtWidgets import QMessageBox
+    app = QApplication.instance() or QApplication([])
+    root = tmp_path / 'input'
+    root.mkdir()
+    image = root / 'crop.png'
+    Image.new('RGB', (24, 32), 'white').save(image)
+    output = tmp_path / 'output'
+    window = MainWindow()
+    window.input.setText(str(root))
+    window.output.setText(str(output))
+    window.saved_options = window.options()
+    window.records = [GroupRecord(str(image), image.name, '乙', '乙', 'manual', .9)]
+    window.dirty = True
+    window._update_controller = SimpleNamespace(restart_requested=True)
+    monkeypatch.setattr(QMessageBox, 'question', lambda *args: QMessageBox.Yes)
+    window.show()
+    assert not window.close()
+    assert window.isVisible()
+    assert window._update_save_pending
+    # A second close must not cancel the save that owns this restart.
+    assert not window.close()
+    assert not window.worker.cancel_requested
+    for _ in range(500):
+        QTest.qWait(10)
+        if window.worker is None:
+            break
+    assert window.worker is None
+    assert not window.isVisible()
+    assert not window.dirty
+    assert window._update_controller.restart_requested
+    manifest = json.loads((output / '归并清单.json').read_text(encoding='utf-8'))
+    assert manifest['records'][0]['recognized_text'] == '乙'
+    assert (output / '字形归并.xlsx').is_file()
+
+
+def test_update_restart_refused_save_keeps_window_open(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from PySide6.QtWidgets import QMessageBox
+    app = QApplication.instance() or QApplication([])
+    root, output = tmp_path / 'input', tmp_path / 'output'
+    root.mkdir()
+    output.mkdir()
+    (output / '归并清单.json').write_text('{}')
+    (output / '按字').mkdir()
+    window = MainWindow()
+    window.input.setText(str(root))
+    window.output.setText(str(output))
+    window.saved_options = window.options()
+    window.dirty = True
+    window._update_controller = SimpleNamespace(restart_requested=True)
+    monkeypatch.setattr(QMessageBox, 'question', lambda *args: QMessageBox.No)
+    window.show()
+    assert not window.close()
+    assert window.isVisible() and window.dirty
+    assert window.worker is None
+    assert not window._update_save_pending
+    assert not window._update_controller.restart_requested
+    window.dirty = False
+    window.close()
+
+
+def test_update_restart_failed_or_cancelled_save_does_not_exit(monkeypatch):
+    from types import SimpleNamespace
+    from PySide6.QtCore import QObject, Signal
+    from PySide6.QtWidgets import QMessageBox
+    import app as app_module
+    app = QApplication.instance() or QApplication([])
+    class Worker(QObject):
+        progress = Signal(int, int, object)
+        completed = Signal(dict)
+        failed = Signal(str)
+        cancelled = Signal()
+        finished = Signal()
+        def __init__(self, *args):
+            super().__init__()
+        def start(self):
+            pass
+    monkeypatch.setattr(app_module, 'Worker', Worker)
+    monkeypatch.setattr(QMessageBox, 'warning', lambda *args: None)
+    for outcome in ('failed', 'cancelled'):
+        window = MainWindow()
+        window.saved_options = {'output_dir': '/nonexistent-hanzi-test-output'}
+        window.dirty = True
+        window._update_controller = SimpleNamespace(restart_requested=True)
+        window.show()
+        assert not window.close()
+        worker = window.worker
+        if outcome == 'failed':
+            worker.failed.emit('write failed')
+        else:
+            worker.cancelled.emit()
+        worker.finished.emit()
+        assert window.isVisible() and window.dirty
+        assert not window._update_save_pending
+        assert not window._update_controller.restart_requested
+        window.dirty = False
+        window.close()
+
+
+def test_update_restart_does_not_interrupt_active_task():
+    from types import SimpleNamespace
+    app = QApplication.instance() or QApplication([])
+    window = MainWindow()
+    window.worker = object()
+    window._update_controller = SimpleNamespace(restart_requested=True)
+    window.show()
+    assert not window.close()
+    assert window.isVisible()
+    assert not window._update_controller.restart_requested
+    window.worker = None
+    window.close()

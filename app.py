@@ -40,6 +40,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('字形归并 · 识别与复核')
         self.resize(1180, 800)
         self.worker = None
+        self._update_save_pending = False
+        self._update_save_succeeded = False
         self.records = []
         self.saved_options = None
         self.dirty = False
@@ -217,6 +219,8 @@ class MainWindow(QMainWindow):
             self.records = self.pending_records
             self.saved_options = self.active_options.copy()
             self.dirty = False
+            if self._update_save_pending:
+                self._update_save_succeeded = True
             self.deleted_batches.clear()
             self.populate()
             self.status.setText(f"完成：{result['record_count']} 张，{result['group_count']} 个分组，{result['review_count']} 张待复核")
@@ -228,6 +232,12 @@ class MainWindow(QMainWindow):
         if self.bar.maximum() == 0:
             self.bar.setRange(0, 1)
             self.bar.setValue(1)
+        if self._update_save_pending:
+            self._update_save_pending = False
+            if self._update_save_succeeded and not self.dirty:
+                self.close()
+            else:
+                self._update_controller.restart_requested = False
 
     def on_error(self, message):
         self.status.setText('失败：' + message)
@@ -308,6 +318,25 @@ class MainWindow(QMainWindow):
             QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     def closeEvent(self, event):
+        updater = getattr(self, '_update_controller', None)
+        if updater is not None and updater.restart_requested:
+            if self._update_save_pending:
+                event.ignore()
+                return
+            if self.worker:
+                updater.restart_requested = False
+                self.status.setText('请等待当前任务完成后，再保存并重启更新。')
+                event.ignore()
+                return
+            if self.dirty:
+                event.ignore()
+                self._update_save_pending = True
+                self._update_save_succeeded = False
+                self.launch(export=True)
+                if self.worker is None:
+                    self._update_save_pending = False
+                    updater.restart_requested = False
+                return
         if self.worker:
             self.stop()
             event.ignore()
