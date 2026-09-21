@@ -17,7 +17,7 @@ code_root = protection['prepare'](project_dir)
 datas.append(protection['build_info'](project_dir))
 
 a = Analysis([str(code_root / 'packaging/entry.py')], pathex=[str(code_root), str(code_root / 'packaging')],
-             binaries=[], datas=datas, hiddenimports=['yaml', 'xlsxwriter'],
+             binaries=[], datas=datas, hiddenimports=['yaml', 'xlsxwriter', '_cffi_backend'],
              hookspath=[], runtime_hooks=[], excludes=[], noarchive=False)
 # 沿用上游的 Windows ICU 兼容处理，保留 Qt 自身目录中的依赖。
 def incompatible_root_icu(entry):
