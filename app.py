@@ -69,7 +69,8 @@ class MainWindow(QMainWindow):
         self.export = QPushButton('保存复核结果')
         self.export.setEnabled(False)
         self.open_output = QPushButton('打开输出目录')
-        for button in (self.scan, self.start, self.cancel, self.export, self.open_output):
+        self.check_updates_button = QPushButton('检查更新')
+        for button in (self.scan, self.start, self.cancel, self.export, self.open_output, self.check_updates_button):
             buttons.addWidget(button)
         layout.addLayout(buttons)
         self.scan.clicked.connect(lambda: self.launch(scan=True))
@@ -326,6 +327,7 @@ def main():
         return 0
     window = MainWindow()
     protect_window(window, session, lambda: window.launch(export=True), window.stop)
+    window.check_updates_button.clicked.connect(window._update_controller.action.trigger)
     window.show()
     return app.exec()
 
