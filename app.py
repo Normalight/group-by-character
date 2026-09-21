@@ -349,12 +349,17 @@ class MainWindow(QMainWindow):
 
 def main():
     app = QApplication(sys.argv)
+    from hanzi_auth.single_instance import acquire_instance
+    instance = acquire_instance(app, 'group-by-character')
+    if instance is None:
+        return 0
     app.setStyle('Fusion')
     from hanzi_auth import require_login, protect_window
     session = require_login('group-by-character')
     if session is None:
         return 0
     window = MainWindow()
+    instance.window = window
     protect_window(window, session, lambda: window.launch(export=True), window.stop)
     window.check_updates_button.clicked.connect(window._update_controller.action.trigger)
     window.show()
