@@ -11,7 +11,12 @@ for filename in ('inference.onnx', 'inference.yml'):
         raise FileNotFoundError(f'缺少内置模型资源：{source}')
     datas.append((str(source), model_dir.as_posix()))
 
-a = Analysis([str(project_dir / 'packaging/entry.py')], pathex=[str(project_dir), str(project_dir / 'packaging')],
+import runpy
+protection = runpy.run_path(str(Path(project_dir) / 'packaging/protection.py'))
+code_root = protection['prepare'](project_dir)
+datas.append(protection['build_info'](project_dir))
+
+a = Analysis([str(code_root / 'packaging/entry.py')], pathex=[str(code_root), str(code_root / 'packaging')],
              binaries=[], datas=datas, hiddenimports=['yaml', 'xlsxwriter'],
              hookspath=[], runtime_hooks=[], excludes=[], noarchive=False)
 # 沿用上游的 Windows ICU 兼容处理，保留 Qt 自身目录中的依赖。
@@ -22,6 +27,7 @@ def incompatible_root_icu(entry):
         name == 'icuuc.dll' or (name.startswith('icudt') and name.endswith('.dll')))
 
 a.binaries = [entry for entry in a.binaries if not incompatible_root_icu(entry)]
+protection['apply'](a, code_root)
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='group_by_character',
           debug=False, strip=False, upx=False, console=False)

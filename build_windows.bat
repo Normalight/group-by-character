@@ -1,7 +1,9 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-call conda run --no-capture-output -n chardet python -m PyInstaller --noconfirm app.spec
+call conda run --no-capture-output -n chardet python -m pip install -r packaging/requirements-windows.txt
+if errorlevel 1 exit /b 1
+call conda run --no-capture-output -n chardet python -m PyInstaller --noconfirm --clean app.spec
 if errorlevel 1 (
   pause
   exit /b 1

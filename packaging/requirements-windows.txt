@@ -7,3 +7,8 @@ xlsxwriter==3.2.3
 PySide6==6.8.3
 pyinstaller==6.21.0
 pyinstaller-hooks-contrib==2026.6
+
+# Shared desktop login package (vendored for independent builds).
+./vendor/hanzi_auth-0.2.0-py3-none-any.whl
+Cython==3.1.2
+setuptools==80.9.0
