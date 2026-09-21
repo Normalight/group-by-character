@@ -198,3 +198,9 @@ Mac ZIP 根目录只有 `字形归并工具.app` 与 `MAC使用说明.txt`，解
 软件登录后自动检查一次更新，也可选择“帮助 → 检查更新”。管理员在账号后台按软件、平台填写公开 GitCode 发行版附件链接、版本、大小和 SHA-256。客户端完成下载校验后将新版本安装到独立目录，保留旧版本和当前工作，再由用户打开新版本。
 
 发布时必须设置 `PACKAGE_VERSION`，构建会生成 `build_info.json`。可用 `python packaging/release_info.py <安装包.zip> --product group-by-character --target windows-x64 --version v1.0.0` 计算大小和校验值；Mac 的 target 为 `macos-arm64` 或 `macos-x86_64`。GitCode 仓库创建、标签及附件发布步骤见工作区 `hanzi-auth/README.md` 的“GitCode 发布与软件更新”。
+
+### GitCode 发行版同步
+
+发布 GitHub `vMAJOR.MINOR.PATCH` Release 后，Actions 构建三个平台安装包，上传 GitHub，再复用同一批 Artifact 上传 GitCode。需要仓库变量 `GITCODE_OWNER`、`GITCODE_REPO` 和 Secret `GITCODE_TOKEN`。同步可重跑，已存在的同名附件保留；替换已发布内容应使用新版本号。
+
+同步结果 `gitcode-release-metadata` Artifact 包含三个附件的公开下载链接、文件大小和 SHA-256，可填写到认证后台。GitCode 仓库需允许用户公开下载；凭据仅用于 CI 发布，不放入客户端。
