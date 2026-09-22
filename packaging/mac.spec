@@ -20,6 +20,8 @@ for model in models:
 import runpy
 protection = runpy.run_path(str(root / 'packaging/protection.py'))
 code_root = protection['prepare'](root)
+native_release = runpy.run_path(str(root / 'packaging/native_release.py'))
+datas.extend(native_release['analysis_data'](root))
 datas.append(protection['build_info'](root))
 a = Analysis([str(code_root / 'packaging/entry.py')],
     pathex=[str(code_root), str(code_root / 'packaging')], datas=datas, binaries=[],

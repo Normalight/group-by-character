@@ -189,7 +189,7 @@ Mac ZIP 根目录只有 `字形归并工具.app` 与 `MAC使用说明.txt`，解
 
 账号后台提供登录日志，记录时间、账号、软件、来源 IP、结果和客户端版本，支持筛选与翻页。密码和会话令牌不会进入日志。
 
-软件登录后自动检查一次更新，也可点击工具栏“检查更新”或“帮助 → 检查更新”。客户端直接查询 GitCode 的 `qq_28599947/hanzi-soft` 中带 `group-by-character-` 前缀的最新发行版，匹配当前平台，并读取 `hanzi-update.json` 中的大小和 SHA-256。下载并校验后自动准备更新；点击“保存并重启更新”，按现有提示保存工作，实际退出后在原位置替换并重启，旧版本保留在相邻的 `.previous-*` 目录。Windows 更新保留安装目录中未被新版覆盖的用户文件（运行库 `_internal` 使用新版）。原目录不可写时提示迁移到个人可写目录；源码运行或 macOS 临时隔离位置回退为独立目录，直接打开新版。早期发行版没有清单时提供“前往下载”，下载后手动安装。
+软件登录后自动检查一次更新，也可点击工具栏“检查更新”或“帮助 → 检查更新”。客户端直接查询 GitCode 的 `qq_28599947/hanzi-soft` 中带 `group-by-character-` 前缀的最新发行版，匹配当前平台，并读取 `hanzi-update.json` 中的大小和 SHA-256。下载并校验后自动准备更新；点击“保存并重启更新”，按现有提示保存工作，实际退出后在原位置替换并重启，旧版本保留在本次 `.hanzi-update-*/previous`，新版成功启动并完成登录后自动清理对应暂存目录。Windows 更新保留安装目录中未被新版覆盖的用户文件（运行库 `_internal` 使用新版）。原目录不可写时提示迁移到个人可写目录；源码运行或 macOS 临时隔离位置提示先将软件完整解压到可写目录并重新打开。早期发行版没有清单时提供“前往下载”，下载后手动安装。
 
 发布时必须设置 `PACKAGE_VERSION`，构建会生成 `build_info.json`。可用 `python packaging/release_info.py <安装包.zip> --product group-by-character --target windows-x64 --version v1.0.0` 计算大小和校验值；Mac 的 target 为 `macos-arm64`。GitCode 仓库创建、标签及附件发布步骤见工作区 `hanzi-auth/README.md` 的“GitCode 发布与软件更新”。
 
@@ -223,3 +223,9 @@ Python 模块使用小写下划线命名，以职责区分；现有命令入口�
 ### 本地保存性能
 
 复核保存会复用未变化的归档图片和 Excel 缩略图；无修改且本地结果完整时跳过重复保存。改字时仍生成新的 Excel，使用快速无损 PNG 缩略图和内存打包。输出目录内 `.thumbnails/` 与 `.save-cache.json` 为可删除的加速缓存，缺失时自动重建。保存仍在独立进程中构建临时结果，成功后替换正式目录，失败或取消保留已有结果。
+
+### 原生自动更新构建
+
+共享更新包 0.1.5 使用 Windows WinSparkle + 当前用户 Inno Setup 安装器，以及 macOS Sparkle 2。设置公开 HTTPS feed、公钥和平台签名配置后，沿用本项目平台构建入口。安装前仍遵循未保存成果处理；未配置原生更新的构建会在手动检查时提示不可用。首次从 Windows 便携版迁移需要安装新版安装器。配置和发布说明见工作区 `hanzi-update/docs/update/release.md`，验收状态见 `test_report.md`。
+
+Mac 无开发者证书时可设置 `HANZI_MAC_SIGNING=adhoc`，沿用 `bash build_mac.sh arm64`。仍需配置更新 feed、公钥和 Sparkle SDK/bridge；更新 ZIP 使用 Sparkle Ed25519 签名。此模式无需 Apple 公证，首次安装可能需要在系统隐私与安全性中允许打开。

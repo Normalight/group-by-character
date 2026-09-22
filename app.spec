@@ -14,6 +14,8 @@ for filename in ('inference.onnx', 'inference.yml'):
 import runpy
 protection = runpy.run_path(str(Path(project_dir) / 'packaging/protection.py'))
 code_root = protection['prepare'](project_dir)
+native_release = runpy.run_path(str(Path(project_dir) / 'packaging/native_release.py'))
+datas.extend(native_release['analysis_data'](project_dir))
 datas.append(protection['build_info'](project_dir))
 
 a = Analysis([str(code_root / 'packaging/entry.py')], pathex=[str(code_root), str(code_root / 'packaging')],
@@ -32,5 +34,6 @@ windows_bundle = runpy.run_path(str(project_dir / 'packaging/windows_bundle.py')
 windows_bundle['apply'](a, project_dir / 'build/windows-bundle-report.json')
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='group_by_character',
-          debug=False, strip=False, upx=False, console=False)
+          debug=False, strip=False, upx=False, console=False,
+          version=native_release['exe_version'](project_dir))
 coll = COLLECT(exe, a.binaries, a.datas, strip=False, upx=False, name='group_by_character')

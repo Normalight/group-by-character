@@ -9,3 +9,8 @@ if errorlevel 1 (
   exit /b 1
 )
 echo Built: dist\group_by_character\group_by_character.exe
+
+if defined HANZI_UPDATE_FEED (
+  call conda run --no-capture-output -n chardet python packaging/native_release.py windows
+  if errorlevel 1 exit /b 1
+)
