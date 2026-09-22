@@ -219,3 +219,7 @@ models/                            本机模型资源
 Python 模块使用小写下划线命名，以职责区分；现有命令入口、产品标识、模型路径、JSON/Excel 格式保持兼容。运行安装使用 `requirements.txt`，开发测试使用 `requirements-dev.txt`。平台固定依赖统一在 `packaging/requirements-build.txt`；Mac/Windows 文件只保留包含关系与平台差异。
 
 公共打包脚本维护源为相邻 `hanzi-auth/tools/desktop_packaging/`，通过该项目 `tools/sync_desktop.py` 构建 wheel 并同步。`python tools/sync_desktop.py --check` 只读检查副本和当前 wheel 引用。客户端始终使用本仓库副本，可独立运行与构建。
+
+### 本地保存性能
+
+复核保存会复用未变化的归档图片和 Excel 缩略图；无修改且本地结果完整时跳过重复保存。改字时仍生成新的 Excel，使用快速无损 PNG 缩略图和内存打包。输出目录内 `.thumbnails/` 与 `.save-cache.json` 为可删除的加速缓存，缺失时自动重建。保存仍在独立进程中构建临时结果，成功后替换正式目录，失败或取消保留已有结果。

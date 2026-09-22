@@ -15,6 +15,7 @@ import re
 import shutil
 import sys
 import tempfile
+import time
 import unicodedata
 from typing import Iterable, Optional
 
@@ -224,15 +225,23 @@ def run_grouping(
     cancelled=None,
     records_override=None,
     source_files=None,
+    reuse_dir=None,
 ) -> dict:
     """递归识别并原子构建按字目录与 JSON 清单。"""
 
+    started = time.perf_counter()
     root = _resolved(input_dir)
     output = _resolved(output_dir)
     if output == root or _is_relative_to(root, output):
         raise ValueError("输出目录不能与输入目录相同或包含输入目录")
     if not 0 <= confidence_threshold <= 1:
         raise ValueError("置信度必须在 0 到 1 之间")
+    from grouping.save_cache import file_stamp, read_cache, write_cache, clone_saved
+    previous_root = _resolved(reuse_dir) if reuse_dir else output
+    previous = read_cache(previous_root / '.save-cache.json')
+    previous_entries = previous.get('entries', {})
+    if not isinstance(previous_entries, dict):
+        previous_entries = {}
     overrides = {r.source_path: r for r in records_override} if records_override is not None else None
     files = ([Path(r.source_path) for r in records_override] if records_override is not None
              else list(source_files) if source_files is not None
@@ -254,6 +263,7 @@ def run_grouping(
         )
     )
     records: list[GroupRecord] = []
+    cache_entries = {}
     try:
         grouped_root = staging_dir / "按字"
         grouped_root.mkdir()
@@ -291,7 +301,34 @@ def run_grouping(
             group_dir = grouped_root / _group_component(group_label)
             group_dir.mkdir(parents=True, exist_ok=True)
             destination = group_dir / filename
-            shutil.copy2(source_path, destination)
+            source_stamp = file_stamp(source_path)
+            old = previous_entries.get(str(source_path), {})
+            if not isinstance(old, dict):
+                old = {}
+            old_path = previous_root / old.get('output', '')
+            # Cache paths must remain inside the previous output directory.
+            reusable = (old.get('source') == source_stamp and source_stamp is not None
+                        and _is_relative_to(old_path.resolve(), previous_root)
+                        and old.get('output_stamp') == file_stamp(old_path) and old_path.is_file())
+            if reusable:
+                clone_saved(old_path, destination)
+            else:
+                shutil.copy2(source_path, destination)
+            thumb_name = hashlib.sha256(str(source_path).encode()).hexdigest() + '.png'
+            thumb_dir = staging_dir / '.thumbnails'
+            thumb_dir.mkdir(exist_ok=True)
+            thumb_path = thumb_dir / thumb_name
+            old_thumb = previous_root / '.thumbnails' / thumb_name
+            if reusable and old.get('thumbnail_stamp') == file_stamp(old_thumb) and old_thumb.is_file():
+                clone_saved(old_thumb, thumb_path)
+            else:
+                try:
+                    data, _, _ = _thumbnail(destination)
+                    thumb_path.write_bytes(data.getvalue())
+                except (OSError, ValueError) as error:
+                    logger.warning('缩略图生成失败：%s：%s', source_path, error)
+            cache_entries[str(source_path)] = {'source': source_stamp,
+                'output': destination.relative_to(staging_dir).as_posix(), 'thumbnail': thumb_name}
             record = GroupRecord(
                 source_path=str(source_path),
                 source_relative_path=relative,
@@ -309,15 +346,23 @@ def run_grouping(
         if cancelled and cancelled():
             raise GroupingCancelled()
         _write_manifest(staging_dir, records)
+        assets_done = time.perf_counter()
         build_workbook(
             staging_dir / "字形归并.xlsx",
             records,
             asset_root=staging_dir,
+            thumbnail_root=staging_dir / ".thumbnails",
         )
         if cancelled and cancelled():
             raise GroupingCancelled()
+        for entry in cache_entries.values():
+            entry['output_stamp'] = file_stamp(staging_dir / entry['output'])
+            entry['thumbnail_stamp'] = file_stamp(staging_dir / '.thumbnails' / entry['thumbnail'])
+        write_cache(staging_dir / '.save-cache.json', {'entries': cache_entries, 'workbook': file_stamp(staging_dir / '字形归并.xlsx')})
         _replace_output(staging_dir, output)
         staging_dir = None
+        logger.info("归并保存耗时：图片/清单 %.3fs，Excel/发布 %.3fs",
+                    assets_done - started, time.perf_counter() - assets_done)
     finally:
         if staging_dir is not None and staging_dir.exists():
             shutil.rmtree(staging_dir, ignore_errors=True)
@@ -343,7 +388,7 @@ def _thumbnail(path: Path, max_side: int = 88) -> tuple[io.BytesIO, int, int]:
         image = image.convert("RGB")
         image.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
         data = io.BytesIO()
-        image.save(data, format="PNG", optimize=True)
+        image.save(data, format="PNG", optimize=False, compress_level=1)
         data.seek(0)
         return data, image.width, image.height
 
@@ -361,6 +406,7 @@ def build_workbook(
     records: Iterable[GroupRecord],
     *,
     asset_root: os.PathLike | str | None = None,
+    thumbnail_root: os.PathLike | str | None = None,
 ) -> str:
     """生成按字一行、下一行标出处的 Excel 汇总。"""
 
@@ -381,7 +427,7 @@ def build_workbook(
     workbook_path.parent.mkdir(parents=True, exist_ok=True)
     workbook = xlsxwriter.Workbook(
         str(workbook_path),
-        {"strings_to_formulas": False, "strings_to_urls": False},
+        {"strings_to_formulas": False, "strings_to_urls": False, "in_memory": True},
     )
     image_buffers = []
     try:
@@ -419,7 +465,15 @@ def build_workbook(
                     else _resolved(record.source_path)
                 )
                 try:
-                    image_data, width, height = _thumbnail(image_path)
+                    if thumbnail_root is None:
+                        image_data, width, height = _thumbnail(image_path)
+                    else:
+                        thumb_name = hashlib.sha256(record.source_path.encode()).hexdigest() + '.png'
+                        raw_thumbnail = (Path(thumbnail_root) / thumb_name).read_bytes()
+                        image_data = io.BytesIO(raw_thumbnail)
+                        with Image.open(image_data) as thumbnail:
+                            width, height = thumbnail.size
+                        image_data = io.BytesIO(raw_thumbnail)
                 except Exception as exc:
                     logger.warning("Excel 缩略图生成失败：%s：%s", image_path, exc)
                     sheet.write(

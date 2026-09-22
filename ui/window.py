@@ -161,6 +161,11 @@ class MainWindow(QMainWindow):
             return
         try:
             opts = self.saved_options.copy() if export else self.options()
+            if export and not self.dirty:
+                from grouping.save_cache import unchanged_export
+                if unchanged_export(opts['output_dir'], self.records):
+                    self.status.setText('结果没有变化，已保留本地保存。')
+                    return
             if not scan:
                 output = Path(opts['output_dir'])
                 if output.exists() and any(output.iterdir()):

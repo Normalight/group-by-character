@@ -68,3 +68,9 @@ Mac arm64 的 `packaging/mac.spec` 通过 `slimming.py` 裁剪已验证版本的
 Python 文件使用 `snake_case.py`，按职责命名；外部入口、软件标识、模型目录和导出格式保持稳定。开发测试依赖放在 `requirements-dev.txt`，平台共同构建依赖放在 `packaging/requirements-build.txt`，平台文件只写包含与差异。`packaging/` 中的公共脚本从认证项目 `tools/desktop_packaging/` 同步，不在副本上独立修改。在认证项目运行 `python tools/sync_desktop.py --check` 检查漂移。源码地图见 README。
 
 源码按职责收敛到包，根目录仅保留启动入口和配置。公共工具位于 `utils/`（如适用），业务包不使用模型历史名称。打包保护自动发现根目录下含 `__init__.py` 的源码包，并要求实际 `ui/window.py` 进入保护清单。测试和打包自检直接引用对应包。
+
+## 保存性能
+
+- 保存复核结果通过 `grouping/save_cache.py` 校验输入、归档文件和缩略图状态；未变资源从旧输出硬链接到本次临时目录，不支持硬链接时回退复制。不得硬链接原始输入，也不得原地改写复用文件。
+- `.thumbnails/` 和 `.save-cache.json` 为可重建缓存；复核内容与文件状态不变时 GUI 跳过重复保存。改字仍重新生成 Excel，复用缩略图并在内存中打包。
+- 保留临时目录构建、父进程发布和取消回滚流程；新增回归见 `tests/test_incremental_save.py`。

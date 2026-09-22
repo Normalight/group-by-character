@@ -21,6 +21,8 @@ def run_job(connection, options, scan, records, result_dir):
         if records is None:
             # Explicit file discovery is passed separately to keep OCR enabled.
             opts['source_files'] = files
+        if records is not None:
+            opts['reuse_dir'] = opts['output_dir']
         opts['output_dir'] = result_dir
         result = run_grouping(**opts, recognizer=recognizer, records_override=records,
                               progress=lambda *args: connection.send(('progress', args)))
