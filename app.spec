@@ -28,6 +28,8 @@ def incompatible_root_icu(entry):
 
 a.binaries = [entry for entry in a.binaries if not incompatible_root_icu(entry)]
 protection['apply'](a, code_root)
+windows_bundle = runpy.run_path(str(project_dir / 'packaging/windows_bundle.py'))
+windows_bundle['apply'](a, project_dir / 'build/windows-bundle-report.json')
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='group_by_character',
           debug=False, strip=False, upx=False, console=False)
