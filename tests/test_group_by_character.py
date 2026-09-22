@@ -3,7 +3,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from group_by_character import (
+from grouping.service import (
     GROUP_REVIEW,
     GROUP_UNRECOGNIZED,
     classify_text,
@@ -216,7 +216,7 @@ def test_dry_run_scans_without_loading_model_or_writing_output(tmp_path, capsys)
 
 
 def test_upstream_auto_excludes_overview_and_supports_pdf_layout(tmp_path):
-    from group_by_character import iter_image_files
+    from grouping.service import iter_image_files
     for name in ['碑/page_001/来源-碑_p001_crop_0.png', '碑/page_001/碑_p001_overview.png', '旧版/char_12.jpg']:
         _write_image(tmp_path / name)
     assert len(iter_image_files(tmp_path)) == 2
@@ -226,7 +226,7 @@ def test_upstream_auto_excludes_overview_and_supports_pdf_layout(tmp_path):
 
 def test_cancel_keeps_previous_output(tmp_path):
     import pytest
-    from group_by_character import GroupingCancelled
+    from grouping.service import GroupingCancelled
     root, output = tmp_path / 'input', tmp_path / 'output'
     _write_image(root / 'one.png')
     output.mkdir()
@@ -240,7 +240,7 @@ def test_cancel_keeps_previous_output(tmp_path):
 
 
 def test_manual_export_without_recognizer(tmp_path):
-    from group_by_character import GroupRecord
+    from grouping.service import GroupRecord
     root, output = tmp_path / 'input', tmp_path / 'output'
     _write_image(root / 'one.png')
     record = GroupRecord(str(root / 'one.png'), 'one.png', '乙', '乙', 'manual', .2)

@@ -1,7 +1,7 @@
 from pathlib import Path
 import sys
 import config
-from group_by_character import _default_model_path
+from grouping.service import _default_model_path
 
 
 def test_default_model_is_local_and_independent_of_cwd(tmp_path, monkeypatch):

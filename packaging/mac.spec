@@ -1,6 +1,9 @@
 # macOS-only build, independent of the existing Windows app.spec.
 import os
 from pathlib import Path
+if os.environ.get("MAC_ARCH", "arm64") != "arm64":
+    raise ValueError("Mac builds require arm64")
+os.environ["MAC_ARCH"] = "arm64"
 root = Path(SPECPATH).parent
 import sys
 sys.path.insert(0, str(root))
@@ -22,6 +25,7 @@ a = Analysis([str(code_root / 'packaging/entry.py')],
     pathex=[str(code_root), str(code_root / 'packaging')], datas=datas, binaries=[],
     hiddenimports=['_cffi_backend'], hookspath=[], runtime_hooks=[],
     excludes=['PyQt5', 'PyQt6', 'PySide2', 'tkinter', 'pytest'], noarchive=False)
+runpy.run_path(str(root / 'packaging/slimming.py'))['apply'](a, root)
 protection['apply'](a, code_root)
 pyz = PYZ(a.pure)
 exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name='runtime',

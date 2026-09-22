@@ -73,7 +73,8 @@ Excel 的“字形归并”工作表按字一行、下一行记录每张图片�
 ## 测试
 
 ```bash
-conda run -n chardet python -m pytest -q
+python -m pip install -r requirements-dev.txt
+QT_QPA_PLATFORM=offscreen python -m pytest tests -q
 ```
 
 ## Qt 交互界面
@@ -125,16 +126,12 @@ conda run --no-capture-output -n chardet python -m PyInstaller --noconfirm app.s
 点击“保存复核结果”后，按字目录、JSON 和 Excel 同步更新；全部删除也可以保存为空结果。删除不会修改输入目录中的原始切片。保存成功后清空删除撤销记录，重新运行识别会再次扫描原始切片。
 
 
-## macOS 通用应用（Intel / M 系列）
-
-执行 `bash build_mac.sh` 构建一个适配两种芯片的 `.app` 与发布 ZIP；无需开发者证书。使用者无需安装 Python。详见 [Mac 安装、使用与打包说明](MAC使用说明.txt)。源码启动脚本为 `start_gui.sh`。
-
-
 ## macOS
 
 激活 Python 3.10 / 3.11 环境后执行 `bash start_gui.sh`。
-构建可使用 `bash build_mac.sh arm64`（Apple Silicon）或 `bash build_mac.sh x86_64`（Intel）；
-不带参数构建双架构包。详细说明见 [macOS 使用说明](MAC使用说明.txt)。
+构建使用 `bash build_mac.sh` 或 `bash build_mac.sh arm64`，默认生成 Apple Silicon 版本。详细说明见 [macOS 使用说明](MAC使用说明.txt)。
+
+Apple Silicon 构建会裁剪已验证的 Qt 插件及额外 ONNX 动态库，裁剪规则限定依赖版本，清单写入 `build/slimming.json`。可用 `HANZI_SLIM=0` 构建完整依赖版本用于对照。Windows x64 使用对应的 Windows 构建配置。
 
 ## 仓库范围
 
@@ -147,7 +144,6 @@ conda run --no-capture-output -n chardet python -m PyInstaller --noconfirm app.s
 在 GitHub 发布 Release（正式版或预发布版）时，自动运行 **Build desktop apps**，分别构建：
 
 - Windows x64：解压后运行 exe，保留整个文件夹。
-- macOS Intel（x86_64）：使用 Intel 原生 runner 构建。
 - macOS Apple Silicon（arm64 / M 系列）：使用 ARM 原生 runner 构建。
 
 Mac 需要 macOS 14 或更新版本。每个 Mac ZIP 内都有 `MAC使用说明.txt`，
@@ -155,7 +151,7 @@ Mac 需要 macOS 14 或更新版本。每个 Mac ZIP 内都有 `MAC使用说明.
 构建脚本保留本地完整性签名，不需要 Apple 开发者账号。
 
 在 Actions 的成功运行页面下载 Artifacts（保留 14 天）；下载到的就是应用 ZIP，解压一次即可使用。
-三种构建全部通过后，自动将 应用 ZIP 上传到触发本次构建的 Release。
+两种构建全部通过后，自动将 应用 ZIP 上传到触发本次构建的 Release。
 保存草稿、推送代码或单独推送标签均不触发打包；不会由流水线自动创建另一个 Release。
 标签需使用 `v主版本.次版本.修订号`，如 `v1.0.0` 或 `v1.0.0-rc.1`。
 请从包含当前工作流的提交创建版本标签；每次构建使用该 Release 标签对应的源码。
@@ -166,14 +162,12 @@ CI 使用 Python 3.11 和固定版本依赖；模型由 `packaging/download_mode
 从官方 Hugging Face 固定提交下载，包含在应用中，不提交到源码仓库。
 每个构建会运行应用测试和真实打包程序的 `--smoke-test`；任一步失败都不会向已发布的 Release 上传安装包。
 
-本地构建仍可运行 `bash build_mac.sh arm64`、`bash build_mac.sh x86_64`；
-双架构通用包可在具备两种 Python 3.11 与 Rosetta 的 M 系列 Mac 上运行 `bash build_mac.sh universal`。
+本地 Mac 构建运行 `bash build_mac.sh`，生成 arm64 应用。
 
 安装包命名统一为 `归并-版本标签-平台-架构.zip`，不额外生成校验文件或嵌套压缩包。
 例如本仓库的 `v1.0.0`：
 
 - `归并-v1.0.0-windows-x64.zip`
-- `归并-v1.0.0-macos-x86_64.zip`（Intel）
 - `归并-v1.0.0-macos-arm64.zip`（M 系列）
 
 文件名以标签为准，与可自由填写的 Release 标题无关；应用内名称保持中文。
@@ -197,14 +191,31 @@ Mac ZIP 根目录只有 `字形归并工具.app` 与 `MAC使用说明.txt`，解
 
 软件登录后自动检查一次更新，也可点击工具栏“检查更新”或“帮助 → 检查更新”。客户端直接查询 GitCode 的 `qq_28599947/hanzi-soft` 中带 `group-by-character-` 前缀的最新发行版，匹配当前平台，并读取 `hanzi-update.json` 中的大小和 SHA-256。下载并校验后自动准备更新；点击“保存并重启更新”，按现有提示保存工作，实际退出后在原位置替换并重启，旧版本保留在相邻的 `.previous-*` 目录。Windows 更新保留安装目录中未被新版覆盖的用户文件（运行库 `_internal` 使用新版）。原目录不可写时提示迁移到个人可写目录；源码运行或 macOS 临时隔离位置回退为独立目录，直接打开新版。早期发行版没有清单时提供“前往下载”，下载后手动安装。
 
-发布时必须设置 `PACKAGE_VERSION`，构建会生成 `build_info.json`。可用 `python packaging/release_info.py <安装包.zip> --product group-by-character --target windows-x64 --version v1.0.0` 计算大小和校验值；Mac 的 target 为 `macos-arm64` 或 `macos-x86_64`。GitCode 仓库创建、标签及附件发布步骤见工作区 `hanzi-auth/README.md` 的“GitCode 发布与软件更新”。
+发布时必须设置 `PACKAGE_VERSION`，构建会生成 `build_info.json`。可用 `python packaging/release_info.py <安装包.zip> --product group-by-character --target windows-x64 --version v1.0.0` 计算大小和校验值；Mac 的 target 为 `macos-arm64`。GitCode 仓库创建、标签及附件发布步骤见工作区 `hanzi-auth/README.md` 的“GitCode 发布与软件更新”。
 
 ### GitCode 发行版同步
 
-发布 GitHub `vMAJOR.MINOR.PATCH` Release 后，Actions 构建三个平台安装包，上传 GitHub，再复用同一批 Artifact 上传 GitCode。需要仓库变量 `GITCODE_OWNER`、`GITCODE_REPO` 和 Secret `GITCODE_TOKEN`。同步可重跑，已存在的同名附件保留；替换已发布内容应使用新版本号。
+发布 GitHub `vMAJOR.MINOR.PATCH` Release 后，Actions 构建两个平台安装包，上传 GitHub，再复用同一批 Artifact 上传 GitCode。需要仓库变量 `GITCODE_OWNER`、`GITCODE_REPO` 和 Secret `GITCODE_TOKEN`。同步可重跑，已存在的同名附件保留；替换已发布内容应使用新版本号。
 
-同步会将三个安装包的公开下载链接、文件大小和 SHA-256 上传为 GitCode 发行版的 `hanzi-update.json`，供客户端读取；同一份信息也保存在 `gitcode-release-metadata` Artifact。GitCode 仓库需允许用户公开下载；凭据仅用于 CI 发布，不放入客户端。
+同步会将两个安装包的公开下载链接、文件大小和 SHA-256 上传为 GitCode 发行版的 `hanzi-update.json`，供客户端读取；同一份信息也保存在 `gitcode-release-metadata` Artifact。GitCode 仓库需允许用户公开下载；凭据仅用于 CI 发布，不放入客户端。
 
 ### 自动递增发布版本
 
-在 GitHub Actions 的 **Build desktop apps → Run workflow** 中勾选 **Build and publish a new version**，默认 `patch` 将 `v1.0.0` 递增为 `v1.0.1`；可选 `minor` 或 `major`。流程同时检查源码仓库与公开安装包仓库的已有正式版本，三个平台共用同一新版本，构建成功后发布并同步。未勾选时仅生成开发构建。手动发布 GitHub Release 时沿用其标签。
+在 GitHub Actions 的 **Build desktop apps → Run workflow** 中勾选 **Build and publish a new version**，默认 `patch` 将 `v1.0.0` 递增为 `v1.0.1`；可选 `minor` 或 `major`。流程同时检查源码仓库与公开安装包仓库的已有正式版本，两个平台共用同一新版本，构建成功后发布并同步。未勾选时仅生成开发构建。手动发布 GitHub Release 时沿用其标签。
+
+## 源码组织与依赖维护
+
+```text
+app.py / group_by_character.py      GUI / CLI 启动入口
+config.py                          运行配置
+ui/                                window.py、task_worker.py
+grouping/                          service.py、recognition.py、process_tasks.py
+tests/                             GUI、任务、导出与发行回归
+packaging/ / .github/workflows/     平台打包与发行
+vendor/                            当前认证与更新 wheel
+models/                            本机模型资源
+```
+
+Python 模块使用小写下划线命名，以职责区分；现有命令入口、产品标识、模型路径、JSON/Excel 格式保持兼容。运行安装使用 `requirements.txt`，开发测试使用 `requirements-dev.txt`。平台固定依赖统一在 `packaging/requirements-build.txt`；Mac/Windows 文件只保留包含关系与平台差异。
+
+公共打包脚本维护源为相邻 `hanzi-auth/tools/desktop_packaging/`，通过该项目 `tools/sync_desktop.py` 构建 wheel 并同步。`python tools/sync_desktop.py --check` 只读检查副本和当前 wheel 引用。客户端始终使用本仓库副本，可独立运行与构建。

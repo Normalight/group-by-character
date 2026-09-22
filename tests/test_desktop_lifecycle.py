@@ -19,7 +19,7 @@ def test_native_update_waits_for_old_process_then_swaps(tmp_path):
     source = tmp_path / '.hanzi-update-test' / 'new'
     source.mkdir(parents=True)
     (source / 'version').write_text('new')
-    (source / 'group_by_character.exe').touch()
+    (source / 'grouping.service.exe').touch()
     marker = tmp_path / 'restarted'
     old = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])
     helper = None

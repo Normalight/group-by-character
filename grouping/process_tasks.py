@@ -1,5 +1,5 @@
 """独立工作进程：只写任务临时目录，不发布正式输出。"""
-from group_by_character import PPOcrV6CharacterRecognizer, iter_image_files, run_grouping
+from grouping.service import PPOcrV6CharacterRecognizer, iter_image_files, run_grouping
 
 
 def run_job(connection, options, scan, records, result_dir):

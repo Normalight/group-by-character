@@ -4,7 +4,7 @@ from pathlib import Path
 import time
 from PySide6.QtWidgets import QApplication
 from PySide6.QtTest import QTest
-from task_worker import Worker
+from ui.task_worker import Worker
 
 
 def blocked_task(connection, options, scan, records, result_dir):

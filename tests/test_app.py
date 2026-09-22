@@ -2,8 +2,8 @@ import os
 os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 from PySide6.QtWidgets import QApplication
 from PySide6.QtTest import QTest
-from app import MainWindow
-from group_by_character import GroupRecord
+from ui.window import MainWindow
+from grouping.service import GroupRecord
 from PIL import Image
 
 
@@ -40,7 +40,7 @@ def test_gui_scan_preview_and_manual_correction(tmp_path):
 def test_delete_undo_and_save_empty_result(tmp_path, monkeypatch):
     import json
     from PySide6.QtWidgets import QMessageBox
-    from group_by_character import run_grouping
+    from grouping.service import run_grouping
     app = QApplication.instance() or QApplication([])
     root, output = tmp_path / 'input', tmp_path / 'output'
     root.mkdir()
@@ -156,7 +156,7 @@ def test_update_restart_failed_or_cancelled_save_does_not_exit(monkeypatch):
     from types import SimpleNamespace
     from PySide6.QtCore import QObject, Signal
     from PySide6.QtWidgets import QMessageBox
-    import app as app_module
+    import ui.window as app_module
     app = QApplication.instance() or QApplication([])
     class Worker(QObject):
         progress = Signal(int, int, object)

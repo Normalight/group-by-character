@@ -1,5 +1,6 @@
 """Smoke tests executed from the actual frozen runtime (no source checkout needed)."""
 import json
+import os
 import platform
 import tempfile
 from pathlib import Path
@@ -9,7 +10,7 @@ def smoke_test():
     import sys
     assert getattr(sys, "frozen", False), "Run smoke tests from the packaged application"
     from PySide6.QtWidgets import QApplication
-    from app import MainWindow
+    from ui.window import MainWindow
     from hanzi_auth import require_login, protect_window
     assert callable(require_login) and callable(protect_window)
     from PIL import Image
@@ -17,7 +18,6 @@ def smoke_test():
     from hanzi_auth.desktop import LoginDialog
     from hanzi_auth.updates import build_info
     from hanzi_auth.update_ui import UpdateController
-    from types import SimpleNamespace
     product = 'group-by-character'
     assert build_info(product)["product"] == product
     from hanzi_auth.single_instance import SingleInstance
@@ -29,34 +29,44 @@ def smoke_test():
         owner.close()
         assert duplicate.acquire()
         duplicate.close()
-    from hanzi_auth.credentials import backend
-    import uuid
-    vault = backend()
-    service = 'HanziTools.SmokeTest.' + uuid.uuid4().hex
-    try:
-        vault.set_password(service, 'smoke-test', 'temporary-smoke-value')
-        assert vault.get_password(service, 'smoke-test') == 'temporary-smoke-value'
-    finally:
-        vault.delete_password(service, 'smoke-test')
-    assert vault.get_password(service, 'smoke-test') is None
+    from hanzi_auth.credentials import CredentialStore
+    with tempfile.TemporaryDirectory(prefix='credentials-smoke-') as credential_dir:
+        vault = CredentialStore('https://smoke.invalid', credential_dir)
+        vault.set('smoke-test', 'temporary-smoke-value')
+        assert vault.get('smoke-test') == 'temporary-smoke-value'
+        vault.delete('smoke-test')
+        assert vault.get('smoke-test') == ''
     login = LoginDialog(product)
     assert login.server_url.startswith(("https://", "http://"))
     login.reject()
     window = MainWindow()
-    updates = UpdateController(window, SimpleNamespace(
-        locked=True, session=SimpleNamespace(product=product)))
+    updates = UpdateController(window, product, is_locked=lambda: True)
     updates.startup_timer.stop()
     assert updates.action.text() == "检查更新…"
     window.show()
     app.processEvents()
     window.hide()
+    from PySide6.QtGui import QImageReader
+    from PySide6.QtWidgets import QLineEdit
+    text_input = QLineEdit()
+    text_input.setText('中文输入测试')
+    assert text_input.text() == '中文输入测试'
+    with tempfile.TemporaryDirectory(prefix='image-codec-smoke-') as temp:
+        for extension in ('png', 'jpg', 'bmp', 'tiff', 'webp'):
+            image_path = Path(temp) / ('图片.' + extension)
+            Image.new('RGB', (32, 24), 'white').save(image_path)
+            decoded = QImageReader(str(image_path)).read()
+            assert not decoded.isNull(), f'Qt cannot read {extension}'
+            assert (decoded.width(), decoded.height()) == (32, 24)
     import multiprocessing
     import config
-    from process_tasks import run_job
+    from grouping.process_tasks import run_job
     with tempfile.TemporaryDirectory(prefix='归并打包验证-') as temp:
         source = Path(temp) / '输入'
         source.mkdir()
-        Image.new('RGB', (48, 48), 'white').save(source / 'char_001.png')
+        fixture = os.environ.get('HANZI_SMOKE_IMAGE')
+        image = Image.open(fixture).convert('RGB') if fixture else Image.new('RGB', (48, 48), 'white')
+        image.save(source / 'char_001.png')
         output = Path(temp) / '输出'
         options = dict(input_dir=str(source), output_dir=str(output),
                        model=str(config.model_path()), yaml=str(config.dictionary_path()),
@@ -95,4 +105,4 @@ def smoke_test():
             process.close()
     window.close()
     print(json.dumps({'smoke_test':'passed', 'arch':platform.machine(),
-                      'checks':['login and update UI','Qt window','frozen spawn','ONNX inference','JSON and Excel export']}, ensure_ascii=False))
+                      'checks':['login and update UI','Qt window','image codecs','Unicode widgets','frozen spawn','ONNX inference','JSON and Excel export']}, ensure_ascii=False))

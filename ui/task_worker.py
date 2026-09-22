@@ -6,7 +6,7 @@ import shutil
 import tempfile
 import threading
 from PySide6.QtCore import QObject, QTimer, Signal
-from process_tasks import run_job
+from grouping.process_tasks import run_job
 
 
 class Worker(QObject):
