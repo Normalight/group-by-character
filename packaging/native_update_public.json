@@ -2,5 +2,6 @@
   "product": "group-by-character",
   "public_key": "QIjG+ONy7J+NPordutRYC1EDGIe6f/LF1XmSRkhwHDI=",
   "feed_base": "https://github.com/Normalight/hanzi-soft/releases/download/group-by-character-stable",
+  "gitcode_feed_base": "https://gitcode.com/qq_28599947/hanzi-soft/releases/download/group-by-character-stable",
   "channel": "stable"
 }

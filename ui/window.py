@@ -360,7 +360,7 @@ def main():
     window = MainWindow()
     guard = protect_window(window, session, lambda: window.launch(export=True), window.stop)
     attach_updates(window, session.product, button=window.check_updates_button,
-                   is_locked=lambda: guard.locked)
+                   is_locked=lambda: guard.locked, precheck=guard.check_native_update)
     window.show()
     return app.exec()
 
