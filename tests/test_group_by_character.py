@@ -1,6 +1,8 @@
 import json
+import zipfile
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 from grouping.service import (
@@ -112,6 +114,28 @@ def test_run_grouping_copies_success_and_review_images_and_writes_manifest(tmp_p
         record["source_relative_path"] for record in manifest["records"]
     } == {"a/one.png", "b/two.png", "three.png"}
     assert (output_dir / "字形归并.xlsx").is_file()
+
+
+@pytest.mark.parametrize("zip64_limit", [None, 1024])
+def test_grouping_workbook_supports_zip64(tmp_path, monkeypatch, zip64_limit):
+    if zip64_limit is not None:
+        # Exercise the real ZIP64 path without generating gigabytes of data.
+        monkeypatch.setattr(zipfile, "ZIP64_LIMIT", zip64_limit)
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    _write_image(input_dir / "one.png")
+    recognizer = _FakeRecognizer({"one.png": {"text": "甲", "score": 0.95}})
+
+    summary = run_grouping(input_dir, output_dir, recognizer)
+
+    assert summary["record_count"] == 1
+    with zipfile.ZipFile(output_dir / "字形归并.xlsx") as archive:
+        assert archive.testzip() is None
+        assert "xl/media/image1.png" in archive.namelist()
+        assert "甲" in archive.read("xl/sharedStrings.xml").decode("utf-8")
+        assert "one.png" in archive.read("xl/sharedStrings.xml").decode("utf-8")
+        if zip64_limit is not None:
+            assert any(info.extract_version == 45 for info in archive.infolist())
 
 
 def test_run_grouping_isolates_one_recognition_failure(tmp_path):

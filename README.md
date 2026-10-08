@@ -224,6 +224,8 @@ Python 模块使用小写下划线命名，以职责区分；现有命令入口�
 
 复核保存会复用未变化的归档图片和 Excel 缩略图；无修改且本地结果完整时跳过重复保存。改字时仍生成新的 Excel，使用快速无损 PNG 缩略图和内存打包。输出目录内 `.thumbnails/` 与 `.save-cache.json` 为可删除的加速缓存，缺失时自动重建。保存仍在独立进程中构建临时结果，成功后替换正式目录，失败或取消保留已有结果。
 
+Excel 导出启用 ZIP64，支持超出普通 ZIP 大小限制的大批量图片汇总。
+
 ### 原生自动更新构建
 
 共享更新包 0.1.5 使用 Windows WinSparkle + 当前用户 Inno Setup 安装器，以及 macOS Sparkle 2。设置公开 HTTPS feed、公钥和平台签名配置后，沿用本项目平台构建入口。安装前仍遵循未保存成果处理；未配置原生更新的构建会在手动检查时提示不可用。首次从 Windows 便携版迁移需要安装新版安装器。公开仓的版本资产统一为 `<软件>-vX.Y.Z-<平台>`：Windows x64 为原生安装器 `.exe`，macOS arm64 为更新 ZIP，与历史 Release 命名一致；`dist/` 每个平台只保留一个安装包。`.github/workflows/native-build.yml` 可用 `publish` 输入由 CI 用仓库 Secrets 中的私钥签名，并调用 `packaging/native_publish.py` 发布版本安装包与 `<软件>-stable` 更新源。配置和发布说明见工作区 `hanzi-update/docs/update/release.md`，验收状态见 `test_report.md`。

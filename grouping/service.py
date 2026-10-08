@@ -427,7 +427,12 @@ def build_workbook(
     workbook_path.parent.mkdir(parents=True, exist_ok=True)
     workbook = xlsxwriter.Workbook(
         str(workbook_path),
-        {"strings_to_formulas": False, "strings_to_urls": False, "in_memory": True},
+        {
+            "strings_to_formulas": False,
+            "strings_to_urls": False,
+            "in_memory": True,
+            "use_zip64": True,
+        },
     )
     image_buffers = []
     try:
