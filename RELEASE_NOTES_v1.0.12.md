@@ -7,5 +7,5 @@
 
 ## 升级提示
 
-- 支持 Windows x64 和 macOS arm64。升级前请保存当前复核结果。
+- 支持 Windows x64、macOS arm64 和 macOS Intel（x86_64，macOS 14 及以上）。请按电脑芯片选择对应安装包，升级前保存当前复核结果。
 
