@@ -6,11 +6,11 @@
 
 ## 环境
 
-在项目约定的 conda 环境中安装依赖：
+macOS 本机运行使用字符检测与字形归并共用的 uv 环境：
 
 ```bash
-conda activate chardet
-python -m pip install -r requirements.txt
+bash ../hanzi-auth/setup-shared-desktop-env.sh
+../hanzi-auth/.venv/bin/python app.py
 ```
 默认使用本项目目录下的模型，运行时无需安装同级项目。**模型不上传 GitHub，首次运行前请单独下载：**
 
@@ -79,10 +79,10 @@ QT_QPA_PLATFORM=offscreen python -m pytest tests -q
 
 ## Qt 交互界面
 
-双击 `start_gui.bat`，或在项目目录执行：
+Windows 双击 `start_gui.bat`。macOS 可双击 `../hanzi-auth/打开字形归并.command`，或在项目目录执行：
 
 ```bash
-conda run --no-capture-output -n chardet python app.py
+../hanzi-auth/.venv/bin/python app.py
 ```
 
 1. 选择 [char-detection-main](https://github.com/Normalight/char-detection-main) 实际保存结果的目录（例如 `interactive_output`、`output_v6small`），也可选择单页或 PDF 的结果目录。

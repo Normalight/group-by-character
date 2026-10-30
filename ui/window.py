@@ -1,7 +1,8 @@
-"""Qt 字形归并与人工复核界面。运行：conda run -n chardet python app.py"""
+"""Qt 字形归并与人工复核界面。运行命令见 README。"""
 
 from pathlib import Path
 import sys
+import os
 from dataclasses import replace
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QPixmap, QDesktopServices, QShortcut, QKeySequence
@@ -151,9 +152,10 @@ class MainWindow(QMainWindow):
                     confidence_threshold=self.threshold.value())
 
     def launch(self, scan=False, export=False):
-        from hanzi_auth import is_locked
-        if is_locked(self) and not export:
-            return
+        if not getattr(self, '_local_dev_mode', False):
+            from hanzi_auth import is_locked
+            if is_locked(self) and not export:
+                return
         if export and self.saved_options is None:
             self.status.setText('当前没有可保存的复核结果。')
             return
@@ -352,15 +354,20 @@ class MainWindow(QMainWindow):
 def main():
     app = QApplication(sys.argv)
     app.setStyle('Fusion')
-    from hanzi_auth import start_session, protect_window
-    from hanzi_update import attach_updates
-    session = start_session(app, 'group-by-character')
-    if session is None:
-        return 0
+    # 本地源码调试可选跳过平台服务；冻结发行版始终要求认证。
+    local_dev = os.environ.get('HANZI_MASK_LOCAL_DEV') == '1' and not getattr(sys, 'frozen', False)
+    if not local_dev:
+        from hanzi_auth import start_session, protect_window
+        from hanzi_update import attach_updates
+        session = start_session(app, 'group-by-character')
+        if session is None:
+            return 0
     window = MainWindow()
-    guard = protect_window(window, session, lambda: window.launch(export=True), window.stop)
-    attach_updates(window, session.product, button=window.check_updates_button,
-                   is_locked=lambda: guard.locked, precheck=guard.check_native_update)
+    window._local_dev_mode = local_dev
+    if not local_dev:
+        guard = protect_window(window, session, lambda: window.launch(export=True), window.stop)
+        attach_updates(window, session.product, button=window.check_updates_button,
+                       is_locked=lambda: guard.locked, precheck=guard.check_native_update)
     window.show()
     return app.exec()
 

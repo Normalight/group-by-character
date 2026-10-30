@@ -47,6 +47,8 @@ Mac arm64 的 `packaging/mac.spec` 通过 `slimming.py` 裁剪已验证版本的
 
 认证与更新通过 `vendor/` wheel 接入；更新实现位于独立的 `hanzi-update`，通过 `attach_updates` 接入每个窗口。公共打包脚本的源头是相邻 `hanzi-auth/tools/desktop_packaging/`，改动后用该项目的 `tools/sync_desktop.py` 同步；升级 wheel 还需更新普通及平台依赖文件。Cython 保护、模型收集及 `build_info.json` 必须覆盖实际使用模块。
 
+本地源码开发可设置 `HANZI_MASK_LOCAL_DEV=1` 启动 GUI 并跳过认证与更新服务；冻结发行版忽略该开关，仍执行登录、授权守卫和更新接入。CLI 不受该开关影响。
+
 仅提交源码、测试、打包配置及必要分发依赖。模型、用户输入输出、生成的 Excel、缓存、build/dist 不作为源码提交。修改扫描规则、记录结构、任务取消或导出行为时同步本文件与 README。
 
 ## 提交说明
